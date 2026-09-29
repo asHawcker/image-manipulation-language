@@ -42,7 +42,7 @@ std::unique_ptr<Stmt> Parser::parse_var_dec_stmt()
     Token op = consume(TokenType::OP_equal, "expected '=' equals operator ");
     std::unique_ptr<Expr> val = std::move(parse_expr());
     consume(TokenType::Semicolon, "expected ';' semicolon");
-    return std::make_unique<VarDecStmt>(identifier.lexeme, TokenType::KW_int, val);
+    return std::make_unique<VarDecStmt>(identifier.lexeme, TokenType::KW_int, std::move(val));
 }
 
 std::unique_ptr<Expr> Parser::parse_primary()
@@ -63,12 +63,12 @@ std::unique_ptr<Expr> Parser::parse_primary()
             while (!match(TokenType::Paren_right))
             {
                 std::unique_ptr<Expr> arg = std::move(parse_expr());
-                args.push_back(arg);
+                args.push_back(std::move(arg));
                 if (match(TokenType::Comma))
                     consume(TokenType::Comma, "");
             }
             consume(TokenType::Paren_right, "");
-            return std::make_unique<CallExpr>(identifier.lexeme, args);
+            return std::make_unique<CallExpr>(identifier.lexeme, std::move(args));
         }
         return std::make_unique<VarExpr>(identifier.lexeme);
     }
@@ -106,7 +106,7 @@ std::vector<std::unique_ptr<Stmt>> Parser::parse_program()
     while (curr_token.type != TokenType::Eof)
     {
         std::unique_ptr<Stmt> statement = std::move(parse_stmt());
-        program.push_back(statement);
+        program.push_back(std::move(statement));
     }
     return program;
 }

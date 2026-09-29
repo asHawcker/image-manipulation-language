@@ -83,13 +83,13 @@ Token Lexer::next_token()
         cursor++;
         return next;
     case '(':
-        next.type = TokenType::Brace_left;
+        next.type = TokenType::Paren_left;
         next.lexeme = source.substr(cursor, 1);
         col++;
         cursor++;
         return next;
     case ')':
-        next.type = TokenType::Brace_right;
+        next.type = TokenType::Paren_right;
         next.lexeme = source.substr(cursor, 1);
         col++;
         cursor++;
