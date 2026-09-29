@@ -1,6 +1,9 @@
 #include "parser.hpp"
 #include "codegen.hpp"
 
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Transforms/Utils/Mem2Reg.h>
+
 int main()
 {
     const std::string source_code = R"(
@@ -34,6 +37,21 @@ int main()
     }
 
     context.builder.CreateRetVoid();
+
+    llvm::LoopAnalysisManager lam;
+    llvm::FunctionAnalysisManager fam;
+    llvm::ModuleAnalysisManager mam;
+    llvm::CGSCCAnalysisManager cam;
+
+    llvm::PassBuilder PB;
+
+    PB.registerModuleAnalyses(mam);
+    PB.registerFunctionAnalyses(fam);
+    PB.crossRegisterProxies(lam, fam, cam, mam);
+
+    llvm::FunctionPassManager fpm;
+    fpm.addPass(llvm::PromotePass());
+    fpm.run(*mainFunc, fam);
 
     context.module->print(llvm::outs(), nullptr);
     return 0;
