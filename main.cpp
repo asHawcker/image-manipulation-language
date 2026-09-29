@@ -4,6 +4,16 @@
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Transforms/Utils/Mem2Reg.h>
 
+#include <llvm/MC/TargetRegistry.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
+#include <llvm/TargetParser/Host.h>
+#include <llvm/IR/PassManager.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/TargetParser/Triple.h>
+
 int main()
 {
     const std::string source_code = R"(
@@ -21,7 +31,7 @@ int main()
 
     llvm::FunctionType *mainType = llvm::FunctionType::get(llvm::Type::getVoidTy(context.context), false);
 
-    llvm::Function *mainFunc = llvm::Function::Create(mainType, llvm::Function::ExternalLinkage, "main", context.module.get());
+    llvm::Function *mainFunc = llvm::Function::Create(mainType, llvm::Function::ExternalLinkage, "iml_main", context.module.get());
 
     llvm::BasicBlock *entry_block = llvm::BasicBlock::Create(context.context, "entry_block", mainFunc);
 
@@ -54,5 +64,51 @@ int main()
     fpm.run(*mainFunc, fam);
 
     context.module->print(llvm::outs(), nullptr);
+
+    // object-file output
+
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+
+    llvm::Triple targetTriple(llvm::sys::getDefaultTargetTriple());
+    context.module->setTargetTriple(targetTriple);
+
+    std::string Error;
+    auto target = llvm::TargetRegistry::lookupTarget(targetTriple, Error);
+
+    if (!target)
+    {
+        llvm::errs() << Error;
+        return 1;
+    }
+
+    auto CPU = "generic";
+    auto features = "";
+    llvm::TargetOptions opt;
+    auto TargetMachine = target->createTargetMachine(targetTriple, CPU, features, opt, llvm::Reloc::PIC_);
+
+    context.module->setDataLayout(TargetMachine->createDataLayout());
+
+    std::error_code ec;
+    llvm::raw_fd_ostream dest("output.o", ec, llvm::sys::fs::OF_None);
+
+    if (ec)
+    {
+        llvm::errs() << "could not open file" << ec.message();
+    }
+
+    llvm::legacy::PassManager pass;
+
+    auto FileType = llvm::CodeGenFileType::ObjectFile;
+
+    if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType))
+    {
+        llvm::errs() << "Target machine can't emit a file of this type";
+        return 1;
+    }
+
+    pass.run(*context.module);
+    dest.flush();
+
     return 0;
 }
