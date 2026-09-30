@@ -1,5 +1,6 @@
 #include "parser.hpp"
 #include "codegen.hpp"
+#include "semantic.hpp"
 
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Transforms/Utils/Mem2Reg.h>
@@ -17,15 +18,19 @@
 int main()
 {
     const std::string source_code = R"(
-    int x = 2;
-    int y= 3;
-    print(x+y);
+    int a = 10;
+    float b = 3.14;
+    float c = a + b;
+    bool flag = true;
     )";
 
     Lexer lexer(source_code);
     Parser parser(lexer);
 
     auto program = parser.parse_program();
+
+    SemanticAnalyzer analyzer;
+    analyzer.analyze_program(program);
 
     CodeGenContext context;
 

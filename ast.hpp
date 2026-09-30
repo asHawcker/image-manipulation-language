@@ -6,11 +6,20 @@
 #include <vector>
 #include <llvm/IR/Value.h>
 
+enum class Type
+{
+    INT,
+    FLOAT,
+    BOOL,
+    UNK
+};
+
 struct CodeGenContext;
 
 class Expr
 {
 public:
+    Type type = Type::UNK;
     virtual ~Expr() = default;
     virtual llvm::Value *codegen(CodeGenContext &context) = 0;
 };
@@ -26,7 +35,23 @@ class IntExpr : public Expr
 {
 public:
     int value;
-    IntExpr(int value) : value(value) {}
+    IntExpr(int value) : value(value) { type = Type::INT; }
+    virtual llvm::Value *codegen(CodeGenContext &context) override;
+};
+
+class FloatExpr : public Expr
+{
+public:
+    float value;
+    FloatExpr(float value) : value(value) { type = Type::FLOAT; }
+    virtual llvm::Value *codegen(CodeGenContext &context) override;
+};
+
+class BoolExpr : public Expr
+{
+public:
+    bool value;
+    BoolExpr(bool value) : value(value) { type = Type::BOOL; }
     virtual llvm::Value *codegen(CodeGenContext &context) override;
 };
 
@@ -34,7 +59,7 @@ class VarExpr : public Expr
 {
 public:
     std::string value;
-    VarExpr(std::string value) : value(std::move(value)) {}
+    VarExpr(std::string value) : value(std::move(value)) { type = Type::UNK; }
     virtual llvm::Value *codegen(CodeGenContext &context) override;
 };
 

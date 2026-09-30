@@ -4,7 +4,7 @@ LLVM_FLAGS = $(shell llvm-config-22 --cxxflags --ldflags --system-libs --libs co
 
 TARGET = iml_compiler
 
-SRCS = lexer.cpp ast.cpp parser.cpp main.cpp
+SRCS = lexer.cpp ast.cpp parser.cpp main.cpp semantic.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 $(TARGET): $(OBJS)

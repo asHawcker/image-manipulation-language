@@ -20,7 +20,7 @@ public:
 
     // parsing methods
     std::unique_ptr<Stmt> parse_stmt();
-    std::unique_ptr<Stmt> parse_var_dec_stmt();
+    std::unique_ptr<Stmt> parse_var_dec_stmt(TokenType tokentype);
     std::unique_ptr<Stmt> parse_expr_stmt();
 
     std::unique_ptr<Expr> parse_expr();

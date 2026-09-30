@@ -29,6 +29,8 @@ enum class TokenType
     OP_not,
 
     KW_int,
+    KW_float,
+    KW_bool,
 
     KW_true,
     KW_false,
@@ -40,7 +42,9 @@ enum class TokenType
 
     Comma,
     Semicolon,
-    Colon
+    Colon,
+
+    Error
 };
 
 struct Token

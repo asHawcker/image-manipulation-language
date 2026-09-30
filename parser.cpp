@@ -30,19 +30,22 @@ Token Parser::consume(TokenType type, const std::string &err_msg)
 std::unique_ptr<Stmt> Parser::parse_stmt()
 {
     if (match(TokenType::KW_int))
-        return parse_var_dec_stmt();
-    else
-        return parse_expr_stmt();
+        return parse_var_dec_stmt(TokenType::KW_int);
+    if (match(TokenType::KW_float))
+        return parse_var_dec_stmt(TokenType::KW_float);
+    if (match(TokenType::KW_bool))
+        return parse_var_dec_stmt(TokenType::KW_bool);
+    return parse_expr_stmt();
 }
 
-std::unique_ptr<Stmt> Parser::parse_var_dec_stmt()
+std::unique_ptr<Stmt> Parser::parse_var_dec_stmt(TokenType tokentype)
 {
     advance();
     Token identifier = consume(TokenType::Identifier, "expected Identifier ");
     Token op = consume(TokenType::OP_equal, "expected '=' equals operator ");
     std::unique_ptr<Expr> val = std::move(parse_expr());
     consume(TokenType::Semicolon, "expected ';' semicolon");
-    return std::make_unique<VarDecStmt>(identifier.lexeme, TokenType::KW_int, std::move(val));
+    return std::make_unique<VarDecStmt>(identifier.lexeme, tokentype, std::move(val));
 }
 
 std::unique_ptr<Expr> Parser::parse_primary()
@@ -51,6 +54,21 @@ std::unique_ptr<Expr> Parser::parse_primary()
     {
         Token val = consume(TokenType::Lit_int, "expected an integer literal ");
         return std::make_unique<IntExpr>(stoi(val.lexeme));
+    }
+    if (match(TokenType::Lit_float))
+    {
+        Token val = consume(TokenType::Lit_float, "expected an float literal ");
+        return std::make_unique<FloatExpr>(stof(val.lexeme));
+    }
+    if (match(TokenType::KW_true))
+    {
+        Token val = consume(TokenType::KW_true, "expected true ");
+        return std::make_unique<BoolExpr>(true);
+    }
+    if (match(TokenType::KW_false))
+    {
+        Token val = consume(TokenType::KW_false, "expected false ");
+        return std::make_unique<BoolExpr>(false);
     }
 
     if (match(TokenType::Identifier))
