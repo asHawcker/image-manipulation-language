@@ -35,6 +35,8 @@ std::unique_ptr<Stmt> Parser::parse_stmt()
         return parse_var_dec_stmt(TokenType::KW_float);
     if (match(TokenType::KW_bool))
         return parse_var_dec_stmt(TokenType::KW_bool);
+    if (match(TokenType::KW_if))
+        return parse_if_stmt();
     return parse_expr_stmt();
 }
 
@@ -48,40 +50,105 @@ std::unique_ptr<Stmt> Parser::parse_var_dec_stmt(TokenType tokentype)
     return std::make_unique<VarDecStmt>(identifier.lexeme, tokentype, std::move(val));
 }
 
+std::unique_ptr<Stmt> Parser::parse_block_stmt()
+{
+    std::vector<std::unique_ptr<Stmt>> block;
+
+    if (match(TokenType::Brace_left))
+    {
+        advance();
+        while (!match(TokenType::Brace_right) && !match(TokenType::Eof))
+        {
+            block.push_back(parse_stmt());
+        }
+        consume(TokenType::Brace_right, "expected '}'");
+    }
+    else
+    {
+        block.push_back(parse_stmt());
+    }
+    return std::make_unique<BlockStmt>(std::move(block));
+}
+
+std::unique_ptr<Stmt> Parser::parse_if_stmt()
+{
+    advance();
+    consume(TokenType::Paren_left, "expected '('");
+    std::unique_ptr<Expr> cond_ = parse_expr();
+    consume(TokenType::Paren_right, "expected ')'");
+    std::unique_ptr<Stmt> branch_true = parse_block_stmt();
+    std::unique_ptr<Stmt> branch_false;
+    if (match(TokenType::KW_else))
+    {
+        advance();
+        branch_false = parse_block_stmt();
+    }
+    return std::make_unique<IfStmt>(std::move(cond_), std::move(branch_true), std::move(branch_false));
+}
+
+int Parser::get_token_precedence(TokenType type)
+{
+    switch (type)
+    {
+    case TokenType::OP_dequal:
+    case TokenType::OP_lt:
+    case TokenType::OP_gt:
+    case TokenType::OP_ltequal:
+    case TokenType::OP_gtequal:
+        return 10;
+    case TokenType::OP_plus:
+    case TokenType::OP_minus:
+        return 20;
+    case TokenType::OP_star:
+    case TokenType::OP_slash:
+    case TokenType::OP_mod:
+        return 30;
+    default:
+        return 0;
+    }
+}
+
 std::unique_ptr<Expr> Parser::parse_primary()
 {
+    if (match(TokenType::Paren_left))
+    {
+        advance();
+        std::unique_ptr<Expr> expr = parse_expr(0);
+        consume(TokenType::Paren_right, "expected ')' after expression");
+        return expr;
+    }
+
     if (match(TokenType::Lit_int))
     {
         Token val = consume(TokenType::Lit_int, "expected an integer literal ");
-        return std::make_unique<IntExpr>(stoi(val.lexeme));
+        return std::make_unique<IntExpr>(std::stoi(val.lexeme));
     }
     if (match(TokenType::Lit_float))
     {
-        Token val = consume(TokenType::Lit_float, "expected an float literal ");
-        return std::make_unique<FloatExpr>(stof(val.lexeme));
+        Token val = consume(TokenType::Lit_float, "expected a float literal ");
+        return std::make_unique<FloatExpr>(std::stof(val.lexeme));
     }
     if (match(TokenType::KW_true))
     {
-        Token val = consume(TokenType::KW_true, "expected true ");
+        consume(TokenType::KW_true, "");
         return std::make_unique<BoolExpr>(true);
     }
     if (match(TokenType::KW_false))
     {
-        Token val = consume(TokenType::KW_false, "expected false ");
+        consume(TokenType::KW_false, "");
         return std::make_unique<BoolExpr>(false);
     }
 
     if (match(TokenType::Identifier))
     {
-        Token identifier = consume(TokenType::Identifier, "Expected identifer ");
+        Token identifier = consume(TokenType::Identifier, "expected identifier");
         if (match(TokenType::Paren_left))
         {
             consume(TokenType::Paren_left, "");
             std::vector<std::unique_ptr<Expr>> args;
             while (!match(TokenType::Paren_right))
             {
-                std::unique_ptr<Expr> arg = std::move(parse_expr());
-                args.push_back(std::move(arg));
+                args.push_back(parse_expr(0));
                 if (match(TokenType::Comma))
                     consume(TokenType::Comma, "");
             }
@@ -91,23 +158,30 @@ std::unique_ptr<Expr> Parser::parse_primary()
         return std::make_unique<VarExpr>(identifier.lexeme);
     }
 
-    throw std::runtime_error("Unexpected token in expression ");
+    throw std::runtime_error("Unexpected token in expression: " + curr_token.lexeme);
 }
 
-std::unique_ptr<Expr> Parser::parse_expr()
+std::unique_ptr<Expr> Parser::parse_expr(int min_precedence)
 {
-    std::unique_ptr<Expr> ex = std::move(parse_primary());
-    if (match(TokenType::OP_plus) ||
-        match(TokenType::OP_minus) ||
-        match(TokenType::OP_star) ||
-        match(TokenType::OP_slash) ||
-        match(TokenType::OP_mod))
+    std::unique_ptr<Expr> left = parse_primary();
+
+    while (true)
     {
-        Token op = consume(curr_token.type, "");
-        std::unique_ptr<Expr> ex2 = std::move(parse_primary());
-        return std::make_unique<BinExpr>(op.type, std::move(ex), std::move(ex2));
+        int precedence = get_token_precedence(curr_token.type);
+        if (precedence <= min_precedence)
+        {
+            break;
+        }
+
+        Token op = curr_token;
+        advance();
+
+        // Left-associative binary expression parsing
+        std::unique_ptr<Expr> right = parse_expr(precedence);
+        left = std::make_unique<BinExpr>(op.type, std::move(left), std::move(right));
     }
-    return ex;
+
+    return left;
 }
 
 std::unique_ptr<Stmt> Parser::parse_expr_stmt()

@@ -100,4 +100,27 @@ public:
     virtual void codegen(CodeGenContext &context) override;
 };
 
+class BlockStmt : public Stmt
+{
+public:
+    std::vector<std::unique_ptr<Stmt>> stmts;
+    BlockStmt(std::vector<std::unique_ptr<Stmt>> stmts) : stmts(std::move(stmts)) {}
+    virtual void codegen(CodeGenContext &context) override;
+};
+
+class IfStmt : public Stmt
+{
+public:
+    std::unique_ptr<Expr> cond;
+    std::unique_ptr<Stmt> branch_true;
+    std::unique_ptr<Stmt> branch_false;
+
+    IfStmt(std::unique_ptr<Expr> cond,
+           std::unique_ptr<Stmt> branch_true,
+           std::unique_ptr<Stmt> branch_false = nullptr) : cond(std::move(cond)),
+                                                           branch_true(std::move(branch_true)),
+                                                           branch_false(std::move(branch_false)) {}
+    virtual void codegen(CodeGenContext &context) override;
+};
+
 #endif

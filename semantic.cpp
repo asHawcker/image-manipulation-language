@@ -39,6 +39,17 @@ Type SemanticAnalyzer::analyze_expr(Expr *expr)
         Type lType = analyze_expr(bin_expr->left.get());
         Type rType = analyze_expr(bin_expr->right.get());
 
+        if (
+            bin_expr->op == TokenType::OP_lt ||
+            bin_expr->op == TokenType::OP_gt ||
+            bin_expr->op == TokenType::OP_dequal ||
+            bin_expr->op == TokenType::OP_gtequal ||
+            bin_expr->op == TokenType::OP_ltequal)
+        {
+            bin_expr->type = Type::BOOL;
+            return bin_expr->type;
+        }
+
         if (lType == Type::BOOL || rType == Type::BOOL)
         {
             throw std::runtime_error("Cant perform arithmetic operation on 'bool'");
@@ -52,7 +63,16 @@ Type SemanticAnalyzer::analyze_expr(Expr *expr)
         {
             bin_expr->type = Type::INT;
         }
+
         return bin_expr->type;
+    }
+    if (auto *call_expr = dynamic_cast<CallExpr *>(expr))
+    {
+        for (auto &arg : call_expr->args)
+        {
+            analyze_expr(arg.get());
+        }
+        return expr->type;
     }
     return Type::UNK;
 }
@@ -90,6 +110,22 @@ void SemanticAnalyzer::analyze_stmt(Stmt *stmt)
     else if (auto *expr_stmt = dynamic_cast<ExprStmt *>(stmt))
     {
         analyze_expr(expr_stmt->expression.get());
+    }
+    else if (auto *block_stmt = dynamic_cast<BlockStmt *>(stmt))
+    {
+        for (auto &s : block_stmt->stmts)
+        {
+            analyze_stmt(s.get());
+        }
+    }
+    else if (auto *if_stmt = dynamic_cast<IfStmt *>(stmt))
+    {
+        Type cond_type = analyze_expr(if_stmt->cond.get());
+        analyze_stmt(if_stmt->branch_true.get());
+        if (if_stmt->branch_false)
+        {
+            analyze_stmt(if_stmt->branch_false.get());
+        }
     }
 }
 

@@ -76,12 +76,6 @@ Token Lexer::next_token()
         col++;
         cursor++;
         return next;
-    case '=':
-        next.type = TokenType::OP_equal;
-        next.lexeme = source.substr(cursor, 1);
-        col++;
-        cursor++;
-        return next;
     case '(':
         next.type = TokenType::Paren_left;
         next.lexeme = source.substr(cursor, 1);
@@ -97,6 +91,61 @@ Token Lexer::next_token()
     case ';':
         next.type = TokenType::Semicolon;
         next.lexeme = source.substr(cursor, 1);
+        col++;
+        cursor++;
+        return next;
+    case '{':
+        next.type = TokenType::Brace_left;
+        next.lexeme = "{";
+        col++;
+        cursor++;
+        return next;
+    case '}':
+        next.type = TokenType::Brace_right;
+        next.lexeme = "}";
+        col++;
+        cursor++;
+        return next;
+    case '<':
+        if (cursor + 1 < length && source[cursor + 1] == '=')
+        {
+            next.type = TokenType::OP_ltequal;
+            next.lexeme = "<=";
+            col += 2;
+            cursor += 2;
+            return next;
+        }
+        next.type = TokenType::OP_lt;
+        next.lexeme = "<";
+        col++;
+        cursor++;
+        return next;
+    case '>':
+        if (cursor + 1 < length && source[cursor + 1] == '=')
+        {
+            next.type = TokenType::OP_gtequal;
+            next.lexeme = ">=";
+            col += 2;
+            cursor += 2;
+            return next;
+        }
+        next.type = TokenType::OP_gt;
+        next.lexeme = ">";
+        col++;
+        cursor++;
+        return next;
+    case '=':
+        // Handle '==' vs '='
+        if (cursor + 1 < length && source[cursor + 1] == '=')
+        {
+            next.type = TokenType::OP_dequal;
+            next.lexeme = "==";
+            col += 2;
+            cursor += 2;
+            return next;
+        }
+        next.type = TokenType::OP_equal;
+        next.lexeme = "=";
         col++;
         cursor++;
         return next;
@@ -117,29 +166,21 @@ Token Lexer::next_token()
         next.lexeme = source.substr(start, l_word);
 
         if (next.lexeme == "int")
-        {
             next.type = TokenType::KW_int;
-        }
         else if (next.lexeme == "float")
-        {
             next.type = TokenType::KW_float;
-        }
         else if (next.lexeme == "bool")
-        {
             next.type = TokenType::KW_bool;
-        }
         else if (next.lexeme == "true")
-        {
             next.type = TokenType::KW_true;
-        }
         else if (next.lexeme == "false")
-        {
             next.type = TokenType::KW_false;
-        }
+        else if (next.lexeme == "if")
+            next.type = TokenType::KW_if;
+        else if (next.lexeme == "else")
+            next.type = TokenType::KW_else;
         else
-        {
             next.type = TokenType::Identifier;
-        }
         return next;
     }
 

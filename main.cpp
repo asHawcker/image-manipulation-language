@@ -18,10 +18,10 @@
 int main()
 {
     const std::string source_code = R"(
-    int a = 10;
-    float b = 3.14;
-    float c = a + b;
-    bool flag = true;
+    int x = 3;
+    if (x > 5) print(1);
+    else if(x==3){
+    print(99);}
     )";
 
     Lexer lexer(source_code);

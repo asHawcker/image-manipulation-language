@@ -35,6 +35,9 @@ enum class TokenType
     KW_true,
     KW_false,
 
+    KW_if,
+    KW_else,
+
     Paren_left,
     Paren_right,
     Brace_left,

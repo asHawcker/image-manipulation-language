@@ -9,6 +9,8 @@ private:
     Lexer lexer;
     Token curr_token;
 
+    int get_token_precedence(TokenType type);
+
 public:
     Parser(Lexer lexer) : lexer(lexer)
     {
@@ -23,16 +25,13 @@ public:
     std::unique_ptr<Stmt> parse_var_dec_stmt(TokenType tokentype);
     std::unique_ptr<Stmt> parse_expr_stmt();
 
-    std::unique_ptr<Expr> parse_expr();
-    std::unique_ptr<Expr> parse_int_expr();
-    std::unique_ptr<Expr> parse_var_expr();
-    std::unique_ptr<Expr> parse_bin_expr();
-    std::unique_ptr<Expr> parse_call_expr();
+    std::unique_ptr<Stmt> parse_block_stmt();
+    std::unique_ptr<Stmt> parse_if_stmt();
+
+    std::unique_ptr<Expr> parse_expr(int min_precedence = 0);
+    std::unique_ptr<Expr> parse_primary();
 
     std::vector<std::unique_ptr<Stmt>> parse_program();
-
-    // helpers
-    std::unique_ptr<Expr> parse_primary(); // for parse_expr
 };
 
 #endif

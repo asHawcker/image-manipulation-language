@@ -23,22 +23,18 @@ llvm::Value *BinExpr::codegen(CodeGenContext &context)
 {
     llvm::Value *L = left->codegen(context);
     llvm::Value *R = right->codegen(context);
-
-    if (L == nullptr || R == nullptr)
-    {
+    if (!L || !R)
         return nullptr;
-    }
 
-    if (this->type == Type::FLOAT)
+    bool is_float = (left->type == Type::FLOAT || right->type == Type::FLOAT);
+
+    if (is_float)
     {
         if (left->type == Type::INT)
-        {
-            context.builder.CreateSIToFP(L, llvm::Type::getFloatTy(context.context), "castL");
-        }
+            L = context.builder.CreateSIToFP(L, llvm::Type::getFloatTy(context.context), "castL");
         if (right->type == Type::INT)
-        {
-            context.builder.CreateSIToFP(R, llvm::Type::getFloatTy(context.context), "castR");
-        }
+            R = context.builder.CreateSIToFP(R, llvm::Type::getFloatTy(context.context), "castR");
+
         switch (op)
         {
         case TokenType::OP_plus:
@@ -49,11 +45,21 @@ llvm::Value *BinExpr::codegen(CodeGenContext &context)
             return context.builder.CreateFMul(L, R, "fmultmp");
         case TokenType::OP_slash:
             return context.builder.CreateFDiv(L, R, "fdivtmp");
+        case TokenType::OP_lt:
+            return context.builder.CreateFCmpOLT(L, R, "cmplttmp");
+        case TokenType::OP_gt:
+            return context.builder.CreateFCmpOGT(L, R, "cmpgttmp");
+        case TokenType::OP_ltequal:
+            return context.builder.CreateFCmpOLE(L, R, "cmpltetmp");
+        case TokenType::OP_gtequal:
+            return context.builder.CreateFCmpOGE(L, R, "cmpgtetmp");
+        case TokenType::OP_dequal:
+            return context.builder.CreateFCmpOEQ(L, R, "cmpeqtmp");
         default:
             return nullptr;
         }
     }
-    else if (this->type == Type::INT)
+    else
     {
         switch (op)
         {
@@ -65,11 +71,20 @@ llvm::Value *BinExpr::codegen(CodeGenContext &context)
             return context.builder.CreateMul(L, R, "multmp");
         case TokenType::OP_slash:
             return context.builder.CreateSDiv(L, R, "divtmp");
+        case TokenType::OP_lt:
+            return context.builder.CreateICmpSLT(L, R, "cmplttmp");
+        case TokenType::OP_gt:
+            return context.builder.CreateICmpSGT(L, R, "cmpgttmp");
+        case TokenType::OP_ltequal:
+            return context.builder.CreateICmpSLE(L, R, "cmpltetmp");
+        case TokenType::OP_gtequal:
+            return context.builder.CreateICmpSGE(L, R, "cmpgtetmp");
+        case TokenType::OP_dequal:
+            return context.builder.CreateICmpEQ(L, R, "cmpeqtmp");
         default:
             return nullptr;
         }
     }
-    return nullptr;
 }
 
 llvm::Value *VarExpr::codegen(CodeGenContext &context)
@@ -120,4 +135,45 @@ llvm::Value *CallExpr::codegen(CodeGenContext &context)
     }
 
     return context.builder.CreateCall(callee, argument_values, "calltmp");
+}
+
+void BlockStmt::codegen(CodeGenContext &context)
+{
+    for (auto &stmt : stmts)
+    {
+        stmt->codegen(context);
+    }
+}
+
+void IfStmt::codegen(CodeGenContext &context)
+{
+    llvm::Value *condition = cond->codegen(context);
+    if (!condition)
+        return;
+
+    llvm::Function *parent_func = context.builder.GetInsertBlock()->getParent();
+
+    llvm::BasicBlock *true_block = llvm::BasicBlock::Create(context.context, "then", parent_func, nullptr);
+    llvm::BasicBlock *false_block = llvm::BasicBlock::Create(context.context, "else");
+    llvm::BasicBlock *merge_block = llvm::BasicBlock::Create(context.context, "continue");
+
+    context.builder.CreateCondBr(condition, true_block, false_block);
+
+    // then block code
+    context.builder.SetInsertPoint(true_block);
+    branch_true->codegen(context);
+    context.builder.CreateBr(merge_block);
+
+    // else block code
+    parent_func->insert(parent_func->end(), false_block);
+    context.builder.SetInsertPoint(false_block);
+    if (branch_false)
+    {
+        branch_false->codegen(context);
+    }
+    context.builder.CreateBr(merge_block);
+
+    // merge
+    parent_func->insert(parent_func->end(), merge_block);
+    context.builder.SetInsertPoint(merge_block);
 }
