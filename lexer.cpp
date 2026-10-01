@@ -179,6 +179,8 @@ Token Lexer::next_token()
             next.type = TokenType::KW_if;
         else if (next.lexeme == "else")
             next.type = TokenType::KW_else;
+        else if (next.lexeme == "while")
+            next.type = TokenType::KW_while;
         else
             next.type = TokenType::Identifier;
         return next;

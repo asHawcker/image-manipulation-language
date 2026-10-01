@@ -177,3 +177,28 @@ void IfStmt::codegen(CodeGenContext &context)
     parent_func->insert(parent_func->end(), merge_block);
     context.builder.SetInsertPoint(merge_block);
 }
+
+void WhileStmt::codegen(CodeGenContext &context)
+{
+
+    llvm::Function *parent_func = context.builder.GetInsertBlock()->getParent();
+
+    llvm::BasicBlock *cond_block = llvm::BasicBlock::Create(context.context, "whilecond", parent_func);
+    llvm::BasicBlock *body_block = llvm::BasicBlock::Create(context.context, "whilebody");
+    llvm::BasicBlock *end = llvm::BasicBlock::Create(context.context, "whileend");
+
+    context.builder.CreateBr(cond_block);
+    context.builder.SetInsertPoint(cond_block);
+    llvm::Value *condition = cond->codegen(context);
+    if (!condition)
+        return;
+    context.builder.CreateCondBr(condition, body_block, end);
+
+    parent_func->insert(parent_func->end(), body_block);
+    context.builder.SetInsertPoint(body_block);
+    body->codegen(context);
+    context.builder.CreateBr(cond_block);
+
+    parent_func->insert(parent_func->end(), end);
+    context.builder.SetInsertPoint(end);
+}

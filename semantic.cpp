@@ -121,11 +121,24 @@ void SemanticAnalyzer::analyze_stmt(Stmt *stmt)
     else if (auto *if_stmt = dynamic_cast<IfStmt *>(stmt))
     {
         Type cond_type = analyze_expr(if_stmt->cond.get());
+        if (cond_type != Type::BOOL)
+        {
+            throw std::runtime_error("Type Error: condition must be a boolean expression");
+        }
         analyze_stmt(if_stmt->branch_true.get());
         if (if_stmt->branch_false)
         {
             analyze_stmt(if_stmt->branch_false.get());
         }
+    }
+    else if (auto *while_stmt = dynamic_cast<WhileStmt *>(stmt))
+    {
+        Type cond_type = analyze_expr(while_stmt->cond.get());
+        if (cond_type != Type::BOOL)
+        {
+            throw std::runtime_error("Type Error: condition must be a boolean expression");
+        }
+        analyze_stmt(while_stmt->body.get());
     }
 }
 

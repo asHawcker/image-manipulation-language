@@ -18,10 +18,11 @@
 int main()
 {
     const std::string source_code = R"(
-    int x = 3;
-    if (x > 5) print(1);
-    else if(x==3){
-    print(99);}
+    int x = 10;
+    while(x<10){
+        print(x);
+    }
+    print(5);
     )";
 
     Lexer lexer(source_code);

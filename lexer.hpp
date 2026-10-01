@@ -37,6 +37,7 @@ enum class TokenType
 
     KW_if,
     KW_else,
+    KW_while,
 
     Paren_left,
     Paren_right,

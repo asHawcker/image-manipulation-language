@@ -37,6 +37,8 @@ std::unique_ptr<Stmt> Parser::parse_stmt()
         return parse_var_dec_stmt(TokenType::KW_bool);
     if (match(TokenType::KW_if))
         return parse_if_stmt();
+    if (match(TokenType::KW_while))
+        return parse_while_stmt();
     return parse_expr_stmt();
 }
 
@@ -84,6 +86,16 @@ std::unique_ptr<Stmt> Parser::parse_if_stmt()
         branch_false = parse_block_stmt();
     }
     return std::make_unique<IfStmt>(std::move(cond_), std::move(branch_true), std::move(branch_false));
+}
+
+std::unique_ptr<Stmt> Parser::parse_while_stmt()
+{
+    advance();
+    consume(TokenType::Paren_left, "expected '(' recieved " + curr_token.lexeme);
+    std::unique_ptr<Expr> cond = std::move(parse_expr());
+    consume(TokenType::Paren_right, "expected ')' recieved " + curr_token.lexeme);
+    std::unique_ptr<Stmt> body = parse_block_stmt();
+    return std::make_unique<WhileStmt>(std::move(cond), std::move(body));
 }
 
 int Parser::get_token_precedence(TokenType type)
@@ -187,7 +199,7 @@ std::unique_ptr<Expr> Parser::parse_expr(int min_precedence)
 std::unique_ptr<Stmt> Parser::parse_expr_stmt()
 {
     std::unique_ptr<Expr> val = std::move(parse_expr());
-    consume(TokenType::Semicolon, "expected ';' semicolon");
+    consume(TokenType::Semicolon, "expected ';' semicolon, received " + curr_token.lexeme);
     return std::make_unique<ExprStmt>(std::move(val));
 }
 
