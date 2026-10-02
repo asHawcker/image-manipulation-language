@@ -1,0 +1,9 @@
+extern int print(int);
+
+int x = 10;
+while (x > 0)
+{
+    print(x);
+    x = x - 1;
+}
+print(1000);

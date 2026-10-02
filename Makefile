@@ -15,6 +15,9 @@ $(TARGET): $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(TARGET)
+	rm -f output.o output.ll program
 
 run: $(TARGET)
-	./$(TARGET)
+	./$(TARGET) source_code.im 
+	clang++ output.o runtime.cpp -o program
+	./program
