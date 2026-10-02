@@ -39,6 +39,8 @@ enum class TokenType
     KW_else,
     KW_while,
 
+    KW_extern,
+
     Paren_left,
     Paren_right,
     Brace_left,
@@ -71,6 +73,7 @@ private:
 public:
     Lexer(std::string source_code);
     Token next_token();
+    Token peek_token();
 };
 
 #endif

@@ -202,3 +202,44 @@ void WhileStmt::codegen(CodeGenContext &context)
     parent_func->insert(parent_func->end(), end);
     context.builder.SetInsertPoint(end);
 }
+
+void AssignStmt::codegen(CodeGenContext &context)
+{
+    llvm::Value *val = value->codegen(context);
+    if (!val)
+        return;
+
+    if (context.named_values.find(name) == context.named_values.end())
+    {
+        std::runtime_error("Undeclared variable assignment");
+    }
+    llvm::Value *ptr = context.named_values[name];
+
+    context.builder.CreateStore(val, ptr);
+}
+
+void ExternDeclStmt::codegen(CodeGenContext &context)
+{
+    std::vector<llvm::Type *> args;
+    for (auto t : arg_types)
+    {
+        if (t == TokenType::KW_int)
+            args.push_back(llvm::Type::getInt32Ty(context.context));
+        else if (t == TokenType::KW_float)
+            args.push_back(llvm::Type::getFloatTy(context.context));
+        else if (t == TokenType::KW_bool)
+            args.push_back(llvm::Type::getInt1Ty(context.context));
+    }
+
+    llvm::Type *ret = llvm::Type::getVoidTy(context.context);
+    if (ret_type == TokenType::KW_int)
+        ret = llvm::Type::getInt32Ty(context.context);
+    else if (ret_type == TokenType::KW_float)
+        ret = llvm::Type::getFloatTy(context.context);
+    else if (ret_type == TokenType::KW_bool)
+        ret = llvm::Type::getInt1Ty(context.context);
+
+    llvm::FunctionType *func_type = llvm::FunctionType::get(ret, args, false);
+
+    llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, name, context.module.get());
+}

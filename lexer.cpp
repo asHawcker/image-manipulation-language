@@ -181,6 +181,8 @@ Token Lexer::next_token()
             next.type = TokenType::KW_else;
         else if (next.lexeme == "while")
             next.type = TokenType::KW_while;
+        else if (next.lexeme == "extern")
+            next.type = TokenType::KW_extern;
         else
             next.type = TokenType::Identifier;
         return next;
@@ -228,4 +230,19 @@ Token Lexer::next_token()
     }
 
     return next;
+}
+
+Token Lexer::peek_token()
+{
+    std::size_t prev_row = row;
+    std::size_t prev_col = col;
+    std::size_t prev_cursor = cursor;
+
+    Token tok = next_token();
+
+    row = prev_row;
+    col = prev_col;
+    cursor = prev_cursor;
+
+    return tok;
 }

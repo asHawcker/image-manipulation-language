@@ -18,11 +18,12 @@
 int main()
 {
     const std::string source_code = R"(
-    int x = 10;
-    while(x<10){
+    extern int print(int);
+    int x = 0;
+    while (x < 10) {
         print(x);
+        x = x + 1;
     }
-    print(5);
     )";
 
     Lexer lexer(source_code);

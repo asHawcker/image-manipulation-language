@@ -140,6 +140,20 @@ void SemanticAnalyzer::analyze_stmt(Stmt *stmt)
         }
         analyze_stmt(while_stmt->body.get());
     }
+    else if (auto *assign_stmt = dynamic_cast<AssignStmt *>(stmt))
+    {
+        if (type_sym_table.find(assign_stmt->name) == type_sym_table.end())
+        {
+            throw std::runtime_error("Type Error: cannot assign to undeclared variable " + assign_stmt->name);
+        }
+        Type expr_type = analyze_expr(assign_stmt->value.get());
+        Type var_type = type_sym_table[assign_stmt->name];
+
+        if (var_type == Type::INT && expr_type == Type::FLOAT)
+        {
+            throw std::runtime_error("Type Error: cannot assign float to int variable");
+        }
+    }
 }
 
 void SemanticAnalyzer::analyze_program(const std::vector<std::unique_ptr<Stmt>> &program)

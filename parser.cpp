@@ -39,6 +39,15 @@ std::unique_ptr<Stmt> Parser::parse_stmt()
         return parse_if_stmt();
     if (match(TokenType::KW_while))
         return parse_while_stmt();
+    if (match(TokenType::KW_extern))
+        return parse_extern_stmt();
+    if (match(TokenType::Identifier))
+    {
+        if (lexer.peek_token().type == TokenType::OP_equal)
+        {
+            return parse_assign_stmt();
+        }
+    }
     return parse_expr_stmt();
 }
 
@@ -213,4 +222,34 @@ std::vector<std::unique_ptr<Stmt>> Parser::parse_program()
         program.push_back(std::move(statement));
     }
     return program;
+}
+
+std::unique_ptr<Stmt> Parser::parse_assign_stmt()
+{
+    Token identifier = consume(TokenType::Identifier, "expected identifier");
+    consume(TokenType::OP_equal, "expected '='");
+    std::unique_ptr<Expr> val = std::move(parse_expr());
+    consume(TokenType::Semicolon, "expected ';'");
+    return std::make_unique<AssignStmt>(identifier.lexeme, std::move(val));
+}
+
+std::unique_ptr<Stmt> Parser::parse_extern_stmt()
+{
+    advance();
+    Token ret_tok = consume(curr_token.type, "expected return type");
+    Token name_tok = consume(TokenType::Identifier, "expected function name");
+
+    consume(TokenType::Paren_left, "expected '('");
+    std::vector<TokenType> args;
+    while (!match(TokenType::Paren_right))
+    {
+        args.push_back(curr_token.type);
+        advance();
+        if (match(TokenType::Comma))
+            advance();
+    }
+    consume(TokenType::Paren_right, "expected ')'");
+    consume(TokenType::Semicolon, "expected ';'");
+
+    return std::make_unique<ExternDeclStmt>(name_tok.lexeme, std::move(args), ret_tok.type);
 }

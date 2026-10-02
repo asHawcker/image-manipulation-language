@@ -135,4 +135,26 @@ public:
     virtual void codegen(CodeGenContext &context) override;
 };
 
+class AssignStmt : public Stmt
+{
+public:
+    std::string name;
+    std::unique_ptr<Expr> value;
+    AssignStmt(std::string name, std::unique_ptr<Expr> value)
+        : name(std::move(name)), value(std::move(value)) {}
+    virtual void codegen(CodeGenContext &context) override;
+};
+
+class ExternDeclStmt : public Stmt
+{
+public:
+    std::string name;
+    std::vector<TokenType> arg_types;
+    TokenType ret_type;
+
+    ExternDeclStmt(std::string name, std::vector<TokenType> arg_types, TokenType ret_type)
+        : name(std::move(name)), arg_types(std::move(arg_types)), ret_type(ret_type) {}
+    virtual void codegen(CodeGenContext &context) override;
+};
+
 #endif
