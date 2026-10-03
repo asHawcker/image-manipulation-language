@@ -13,11 +13,37 @@ struct CodeGenContext
     llvm::LLVMContext context;
     std::unique_ptr<llvm::Module> module;
     llvm::IRBuilder<> builder;
-    std::map<std::string, llvm::Value *> named_values;
+    std::vector<std::map<std::string, llvm::Value *>> scopes;
 
     CodeGenContext() : builder(context)
     {
         module = std::make_unique<llvm::Module>("iml_compiler", context);
+        scopes.push_back({});
+    }
+
+    void push_scope()
+    {
+        scopes.push_back({});
+    }
+    void pop_scope()
+    {
+        scopes.pop_back();
+    }
+    void set_var(std::string name, llvm::Value *value)
+    {
+        scopes.back()[name] = value;
+    }
+
+    llvm::Value *get_var(std::string name)
+    {
+        for (auto it = scopes.rbegin(); it != scopes.rend(); it++)
+        {
+            if (it->find(name) != it->end())
+            {
+                return it->at(name);
+            }
+        }
+        return nullptr;
     }
 };
 

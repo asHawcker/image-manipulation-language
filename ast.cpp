@@ -89,9 +89,9 @@ llvm::Value *BinExpr::codegen(CodeGenContext &context)
 
 llvm::Value *VarExpr::codegen(CodeGenContext &context)
 {
-    if (context.named_values.find(value) != context.named_values.end())
+    if (context.get_var(value) != nullptr)
     {
-        llvm::Value *ptr = context.named_values[value];
+        llvm::Value *ptr = context.get_var(value);
         llvm::AllocaInst *alloca = llvm::cast<llvm::AllocaInst>(ptr);
         return context.builder.CreateLoad(alloca->getAllocatedType(), ptr, value.c_str());
     }
@@ -114,7 +114,7 @@ void VarDecStmt::codegen(CodeGenContext &context)
     else if (type == TokenType::KW_bool)
         alloca = context.builder.CreateAlloca(llvm::Type::getInt1Ty(context.context), nullptr, name);
     context.builder.CreateStore(init_value, alloca);
-    context.named_values[name] = alloca;
+    context.set_var(name, alloca);
 }
 
 llvm::Value *CallExpr::codegen(CodeGenContext &context)
@@ -139,10 +139,12 @@ llvm::Value *CallExpr::codegen(CodeGenContext &context)
 
 void BlockStmt::codegen(CodeGenContext &context)
 {
+    context.push_scope();
     for (auto &stmt : stmts)
     {
         stmt->codegen(context);
     }
+    context.pop_scope();
 }
 
 void IfStmt::codegen(CodeGenContext &context)
@@ -209,11 +211,11 @@ void AssignStmt::codegen(CodeGenContext &context)
     if (!val)
         return;
 
-    if (context.named_values.find(name) == context.named_values.end())
+    if (context.get_var(name) == nullptr)
     {
         std::runtime_error("Undeclared variable assignment");
     }
-    llvm::Value *ptr = context.named_values[name];
+    llvm::Value *ptr = context.get_var(name);
 
     context.builder.CreateStore(val, ptr);
 }
