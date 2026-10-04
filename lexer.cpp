@@ -94,6 +94,18 @@ Token Lexer::next_token()
         col++;
         cursor++;
         return next;
+    case ':':
+        next.type = TokenType::Colon;
+        next.lexeme = source.substr(cursor, 1);
+        col++;
+        cursor++;
+        return next;
+    case ',':
+        next.type = TokenType::Comma;
+        next.lexeme = "{";
+        col++;
+        cursor++;
+        return next;
     case '{':
         next.type = TokenType::Brace_left;
         next.lexeme = "{";
@@ -151,11 +163,11 @@ Token Lexer::next_token()
         return next;
     }
 
-    if (isalpha(source[cursor]))
+    if (isalpha(source[cursor]) || source[cursor] == '_')
     {
         std::size_t l_word = 0;
         std::size_t start = cursor;
-        while (cursor < length && isalnum(source[cursor]))
+        while (cursor < length && (isalnum(source[cursor]) || source[cursor] == '_'))
         {
             l_word++;
             cursor++;
@@ -183,6 +195,10 @@ Token Lexer::next_token()
             next.type = TokenType::KW_while;
         else if (next.lexeme == "extern")
             next.type = TokenType::KW_extern;
+        else if (next.lexeme == "fnc")
+            next.type = TokenType::KW_fnc;
+        else if (next.lexeme == "ret")
+            next.type = TokenType::KW_ret;
         else
             next.type = TokenType::Identifier;
         return next;

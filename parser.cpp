@@ -1,5 +1,6 @@
 #include "parser.hpp"
 #include <stdexcept>
+#include <iostream>
 
 void Parser::advance()
 {
@@ -41,6 +42,10 @@ std::unique_ptr<Stmt> Parser::parse_stmt()
         return parse_while_stmt();
     if (match(TokenType::KW_extern))
         return parse_extern_stmt();
+    if (match(TokenType::KW_fnc))
+        return parse_fnc_dec_stmt();
+    if (match(TokenType::KW_ret))
+        return parse_ret_stmt();
     if (match(TokenType::Identifier))
     {
         if (lexer.peek_token().type == TokenType::OP_equal)
@@ -105,6 +110,43 @@ std::unique_ptr<Stmt> Parser::parse_while_stmt()
     consume(TokenType::Paren_right, "expected ')' recieved " + curr_token.lexeme);
     std::unique_ptr<Stmt> body = parse_block_stmt();
     return std::make_unique<WhileStmt>(std::move(cond), std::move(body));
+}
+
+std::unique_ptr<Stmt> Parser::parse_fnc_dec_stmt()
+{
+    advance();
+    Token name = consume(TokenType::Identifier, "invalid function name");
+    consume(TokenType::Paren_left, "expected '('");
+    std::vector<Param> params;
+    // int i = 0;
+    while (!match(TokenType::Paren_right))
+    {
+        Param p;
+        p.type = curr_token.type;
+        advance();
+        p.name = consume(TokenType::Identifier, "expected parameter name").lexeme;
+
+        params.push_back(p);
+        if (match(TokenType::Comma))
+            advance();
+    }
+    consume(TokenType::Paren_right, "expected ')'");
+    TokenType return_type = TokenType::Error; // void
+    if (match(TokenType::Colon))
+    {
+        consume(TokenType::Colon, "");
+        return_type = consume(curr_token.type, "invalid return type").type;
+    }
+    std::unique_ptr<Stmt> body = std::move(parse_block_stmt());
+    return std::make_unique<FncDecStmt>(name.lexeme, std::move(params), return_type, std::move(body));
+}
+
+std::unique_ptr<Stmt> Parser::parse_ret_stmt()
+{
+    advance();
+    std::unique_ptr<Expr> val = std::move(parse_expr());
+    consume(TokenType::Semicolon, "expected ';' after return expression");
+    return std::make_unique<RetStmt>(std::move(val));
 }
 
 int Parser::get_token_precedence(TokenType type)

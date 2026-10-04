@@ -41,6 +41,9 @@ enum class TokenType
 
     KW_extern,
 
+    KW_fnc,
+    KW_ret, // return
+
     Paren_left,
     Paren_right,
     Brace_left,

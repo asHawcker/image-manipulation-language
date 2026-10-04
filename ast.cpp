@@ -164,7 +164,10 @@ void IfStmt::codegen(CodeGenContext &context)
     // then block code
     context.builder.SetInsertPoint(true_block);
     branch_true->codegen(context);
-    context.builder.CreateBr(merge_block);
+    if (!context.builder.GetInsertBlock()->getTerminator())
+    {
+        context.builder.CreateBr(merge_block);
+    }
 
     // else block code
     parent_func->insert(parent_func->end(), false_block);
@@ -173,7 +176,10 @@ void IfStmt::codegen(CodeGenContext &context)
     {
         branch_false->codegen(context);
     }
-    context.builder.CreateBr(merge_block);
+    if (!context.builder.GetInsertBlock()->getTerminator())
+    {
+        context.builder.CreateBr(merge_block);
+    }
 
     // merge
     parent_func->insert(parent_func->end(), merge_block);
@@ -199,7 +205,10 @@ void WhileStmt::codegen(CodeGenContext &context)
     parent_func->insert(parent_func->end(), body_block);
     context.builder.SetInsertPoint(body_block);
     body->codegen(context);
-    context.builder.CreateBr(cond_block);
+    if (!context.builder.GetInsertBlock()->getTerminator())
+    {
+        context.builder.CreateBr(cond_block);
+    }
 
     parent_func->insert(parent_func->end(), end);
     context.builder.SetInsertPoint(end);
@@ -244,4 +253,82 @@ void ExternDeclStmt::codegen(CodeGenContext &context)
     llvm::FunctionType *func_type = llvm::FunctionType::get(ret, args, false);
 
     llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, name, context.module.get());
+}
+
+void FncDecStmt::codegen(CodeGenContext &context)
+{
+    std::vector<llvm::Type *> param_types;
+    for (auto &p : params)
+    {
+        if (p.type == TokenType::KW_int)
+            param_types.push_back(llvm::Type::getInt32Ty(context.context));
+        if (p.type == TokenType::KW_float)
+            param_types.push_back(llvm::Type::getFloatTy(context.context));
+        if (p.type == TokenType::KW_bool)
+            param_types.push_back(llvm::Type::getInt1Ty(context.context));
+    }
+
+    llvm::Type *return_type = llvm::Type::getVoidTy(context.context);
+    if (ret_type == TokenType::KW_int)
+        return_type = llvm::Type::getInt32Ty(context.context);
+    else if (ret_type == TokenType::KW_float)
+        return_type = llvm::Type::getFloatTy(context.context);
+    else if (ret_type == TokenType::KW_bool)
+        return_type = llvm::Type::getInt1Ty(context.context);
+
+    llvm::FunctionType *fn_type = llvm::FunctionType::get(return_type, param_types, false);
+    llvm::Function *fnc = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, context.module.get());
+
+    llvm::BasicBlock *entry = llvm::BasicBlock::Create(context.context, "entry", fnc);
+
+    llvm::BasicBlock *prev_insert_point = context.builder.GetInsertBlock();
+    context.builder.SetInsertPoint(entry);
+
+    context.push_scope();
+
+    size_t index = 0;
+    for (auto &arg : fnc->args())
+    {
+        std::string arg_name = params[index].name;
+        arg.setName(arg_name);
+
+        llvm::AllocaInst *alloca = context.builder.CreateAlloca(arg.getType(), nullptr, arg_name);
+        context.builder.CreateStore(&arg, alloca);
+
+        context.set_var(arg_name, alloca);
+        index++;
+    }
+
+    body->codegen(context);
+
+    if (!context.builder.GetInsertBlock()->getTerminator())
+    {
+        if (return_type->isVoidTy())
+        {
+            context.builder.CreateRetVoid();
+        }
+        else
+        {
+            context.builder.CreateRet(llvm::UndefValue::get(return_type));
+        }
+    }
+
+    context.pop_scope();
+    if (prev_insert_point)
+    {
+        context.builder.SetInsertPoint(prev_insert_point);
+    }
+}
+
+void RetStmt::codegen(CodeGenContext &context)
+{
+    if (value)
+    {
+        llvm::Value *ret_val = value->codegen(context);
+        context.builder.CreateRet(ret_val);
+    }
+    else
+    {
+        context.builder.CreateRetVoid();
+    }
 }

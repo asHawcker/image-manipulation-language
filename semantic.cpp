@@ -26,10 +26,11 @@ Type SemanticAnalyzer::analyze_expr(Expr *expr)
 
     if (auto *var_expr = dynamic_cast<VarExpr *>(expr))
     {
-        if (type_sym_table.find(var_expr->value) != type_sym_table.end())
+        Type t = get_var_type(var_expr->value);
+        if (t != Type::UNK)
         {
-            expr->type = type_sym_table[var_expr->value];
-            return expr->type;
+            expr->type = t;
+            return t;
         }
         throw std::runtime_error("undeclared variable: " + var_expr->value);
     }
@@ -68,10 +69,31 @@ Type SemanticAnalyzer::analyze_expr(Expr *expr)
     }
     if (auto *call_expr = dynamic_cast<CallExpr *>(expr))
     {
-        for (auto &arg : call_expr->args)
+        if (func_table.find(call_expr->name) == func_table.end())
         {
-            analyze_expr(arg.get());
+            throw std::runtime_error("Type Error: call to undeclared function " + call_expr->name);
         }
+
+        FunctionSignature expected_sig = func_table[call_expr->name];
+
+        if (call_expr->args.size() != expected_sig.param_types.size())
+        {
+            throw std::runtime_error("Type Error: Expected " +
+                                     std::to_string(expected_sig.param_types.size()) +
+                                     " arguments for '" + call_expr->name + "', but got " +
+                                     std::to_string(call_expr->args.size()));
+        }
+
+        for (size_t i = 0; i < call_expr->args.size(); i++)
+        {
+            Type arg_type = analyze_expr(call_expr->args[i].get());
+            if (arg_type != expected_sig.param_types[i])
+            {
+                throw std::runtime_error("Type Error: Argument type mismatch in call to '" + call_expr->name + "'");
+            }
+        }
+
+        expr->type = expected_sig.return_type;
         return expr->type;
     }
     return Type::UNK;
@@ -105,7 +127,7 @@ void SemanticAnalyzer::analyze_stmt(Stmt *stmt)
             throw std::runtime_error("Type Error: cannot assign float to int variable '" + var_dec->name + "'");
         }
 
-        type_sym_table[var_dec->name] = declared;
+        declare_var(var_dec->name, declared);
     }
     else if (auto *expr_stmt = dynamic_cast<ExprStmt *>(stmt))
     {
@@ -142,17 +164,68 @@ void SemanticAnalyzer::analyze_stmt(Stmt *stmt)
     }
     else if (auto *assign_stmt = dynamic_cast<AssignStmt *>(stmt))
     {
-        if (type_sym_table.find(assign_stmt->name) == type_sym_table.end())
+        if (get_var_type(assign_stmt->name) == Type::UNK)
         {
             throw std::runtime_error("Type Error: cannot assign to undeclared variable " + assign_stmt->name);
         }
         Type expr_type = analyze_expr(assign_stmt->value.get());
-        Type var_type = type_sym_table[assign_stmt->name];
+        Type var_type = get_var_type(assign_stmt->name);
 
         if (var_type == Type::INT && expr_type == Type::FLOAT)
         {
             throw std::runtime_error("Type Error: cannot assign float to int variable");
         }
+    }
+    else if (auto *fnc_dec_stmt = dynamic_cast<FncDecStmt *>(stmt))
+    {
+        Type expected_ret = token_to_type(fnc_dec_stmt->ret_type);
+        FunctionSignature sig;
+        sig.return_type = expected_ret;
+        for (auto &param : fnc_dec_stmt->params)
+        {
+            sig.param_types.push_back(token_to_type(param.type));
+        }
+        func_table[fnc_dec_stmt->name] = sig;
+
+        Type previous_ret_type = curr_func_ret_type;
+        curr_func_ret_type = expected_ret;
+
+        push_scope();
+
+        for (auto &param : fnc_dec_stmt->params)
+        {
+            declare_var(param.name, token_to_type(param.type));
+        }
+
+        analyze_stmt(fnc_dec_stmt->body.get());
+
+        pop_scope();
+        curr_func_ret_type = previous_ret_type;
+    }
+    else if (auto *ret_stmt = dynamic_cast<RetStmt *>(stmt))
+    {
+        Type return_expr_type = Type::UNK;
+
+        if (ret_stmt->value)
+        {
+            return_expr_type = analyze_expr(ret_stmt->value.get());
+        }
+
+        if (return_expr_type != curr_func_ret_type)
+        {
+            throw std::runtime_error("Type Error: return type mismatch");
+        }
+    }
+    else if (auto *extern_dec_stmt = dynamic_cast<ExternDeclStmt *>(stmt))
+    {
+        Type expected_ret = token_to_type(extern_dec_stmt->ret_type);
+        FunctionSignature sig;
+        sig.return_type = expected_ret;
+        for (auto &param : extern_dec_stmt->arg_types)
+        {
+            sig.param_types.push_back(token_to_type(param));
+        }
+        func_table[extern_dec_stmt->name] = sig;
     }
 }
 

@@ -8,4 +8,8 @@ extern "C"
     {
         printf("%d\n", x);
     }
+    void fprint(float x)
+    {
+        printf("%f\n", x);
+    }
 }

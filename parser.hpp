@@ -32,6 +32,9 @@ public:
     std::unique_ptr<Stmt> parse_assign_stmt();
     std::unique_ptr<Stmt> parse_extern_stmt();
 
+    std::unique_ptr<Stmt> parse_fnc_dec_stmt();
+    std::unique_ptr<Stmt> parse_ret_stmt();
+
     std::unique_ptr<Expr> parse_expr(int min_precedence = 0);
     std::unique_ptr<Expr> parse_primary();
 

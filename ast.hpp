@@ -157,4 +157,36 @@ public:
     virtual void codegen(CodeGenContext &context) override;
 };
 
+struct Param
+{
+    TokenType type;
+    std::string name;
+};
+
+class FncDecStmt : public Stmt
+{
+public:
+    std::string name;
+    std::vector<Param> params;
+    TokenType ret_type;
+    std::unique_ptr<Stmt> body;
+
+    FncDecStmt(std::string name,
+               std::vector<Param> params,
+               TokenType ret_type,
+               std::unique_ptr<Stmt> body) : name(std::move(name)),
+                                             params(std::move(params)),
+                                             ret_type(ret_type),
+                                             body(std::move(body)) {}
+    virtual void codegen(CodeGenContext &context) override;
+};
+
+class RetStmt : public Stmt
+{
+public:
+    std::unique_ptr<Expr> value;
+    RetStmt(std::unique_ptr<Expr> value) : value(std::move(value)) {}
+    virtual void codegen(CodeGenContext &context) override;
+};
+
 #endif
