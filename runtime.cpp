@@ -12,4 +12,8 @@ extern "C"
     {
         printf("%f\n", x);
     }
+    void print_str(const char *s)
+    {
+        printf("%s\n", s);
+    }
 }

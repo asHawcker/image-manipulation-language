@@ -36,6 +36,8 @@ std::unique_ptr<Stmt> Parser::parse_stmt()
         return parse_var_dec_stmt(TokenType::KW_float);
     if (match(TokenType::KW_bool))
         return parse_var_dec_stmt(TokenType::KW_bool);
+    if (match(TokenType::KW_str))
+        return parse_var_dec_stmt(TokenType::KW_str);
     if (match(TokenType::KW_if))
         return parse_if_stmt();
     if (match(TokenType::KW_while))
@@ -200,6 +202,11 @@ std::unique_ptr<Expr> Parser::parse_primary()
     {
         consume(TokenType::KW_false, "");
         return std::make_unique<BoolExpr>(false);
+    }
+    if (match(TokenType::Lit_string))
+    {
+        Token val = consume(TokenType::Lit_string, "expected an string literal ");
+        return std::make_unique<StrExpr>(val.lexeme);
     }
 
     if (match(TokenType::Identifier))

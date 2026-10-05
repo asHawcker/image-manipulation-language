@@ -1,5 +1,6 @@
 extern int print(int);
 extern float fprint(float);
+extern str print_str(str);
 
 fnc multiply_add(int a, int b, int c): int {
     ret (a * b) + c;
@@ -43,3 +44,5 @@ print(loop_res);
 
 float f_res = float_calc(10);
 fprint(f_res);
+
+print_str("hello world!");

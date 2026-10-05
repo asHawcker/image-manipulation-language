@@ -31,6 +31,7 @@ enum class TokenType
     KW_int,
     KW_float,
     KW_bool,
+    KW_str,
 
     KW_true,
     KW_false,

@@ -161,6 +161,20 @@ Token Lexer::next_token()
         col++;
         cursor++;
         return next;
+    case '"':
+        col++;
+        cursor++;
+        std::size_t start = cursor;
+        while (cursor < length && source[cursor] != '"')
+        {
+            col++;
+            cursor++;
+        }
+        next.type = TokenType::Lit_string;
+        next.lexeme = source.substr(start, cursor - start);
+        cursor++;
+        col++;
+        return next;
     }
 
     if (isalpha(source[cursor]) || source[cursor] == '_')
@@ -199,6 +213,8 @@ Token Lexer::next_token()
             next.type = TokenType::KW_fnc;
         else if (next.lexeme == "ret")
             next.type = TokenType::KW_ret;
+        else if (next.lexeme == "str")
+            next.type = TokenType::KW_str;
         else
             next.type = TokenType::Identifier;
         return next;

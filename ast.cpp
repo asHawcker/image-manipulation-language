@@ -113,6 +113,8 @@ void VarDecStmt::codegen(CodeGenContext &context)
         alloca = context.builder.CreateAlloca(llvm::Type::getFloatTy(context.context), nullptr, name);
     else if (type == TokenType::KW_bool)
         alloca = context.builder.CreateAlloca(llvm::Type::getInt1Ty(context.context), nullptr, name);
+    else if (type == TokenType::KW_str)
+        alloca = context.builder.CreateAlloca(llvm::PointerType::getUnqual(context.context));
     context.builder.CreateStore(init_value, alloca);
     context.set_var(name, alloca);
 }
@@ -135,6 +137,11 @@ llvm::Value *CallExpr::codegen(CodeGenContext &context)
     }
 
     return context.builder.CreateCall(callee, argument_values, "calltmp");
+}
+
+llvm::Value *StrExpr::codegen(CodeGenContext &context)
+{
+    return context.builder.CreateGlobalString(value, "tmpstr");
 }
 
 void BlockStmt::codegen(CodeGenContext &context)
@@ -240,6 +247,8 @@ void ExternDeclStmt::codegen(CodeGenContext &context)
             args.push_back(llvm::Type::getFloatTy(context.context));
         else if (t == TokenType::KW_bool)
             args.push_back(llvm::Type::getInt1Ty(context.context));
+        else if (ret_type == TokenType::KW_str)
+            args.push_back(llvm::PointerType::getUnqual(context.context));
     }
 
     llvm::Type *ret = llvm::Type::getVoidTy(context.context);
@@ -249,6 +258,8 @@ void ExternDeclStmt::codegen(CodeGenContext &context)
         ret = llvm::Type::getFloatTy(context.context);
     else if (ret_type == TokenType::KW_bool)
         ret = llvm::Type::getInt1Ty(context.context);
+    else if (ret_type == TokenType::KW_str)
+        ret = llvm::PointerType::getUnqual(context.context);
 
     llvm::FunctionType *func_type = llvm::FunctionType::get(ret, args, false);
 
@@ -266,6 +277,8 @@ void FncDecStmt::codegen(CodeGenContext &context)
             param_types.push_back(llvm::Type::getFloatTy(context.context));
         if (p.type == TokenType::KW_bool)
             param_types.push_back(llvm::Type::getInt1Ty(context.context));
+        if (p.type == TokenType::KW_str)
+            param_types.push_back(llvm::PointerType::getUnqual(context.context));
     }
 
     llvm::Type *return_type = llvm::Type::getVoidTy(context.context);
@@ -275,6 +288,8 @@ void FncDecStmt::codegen(CodeGenContext &context)
         return_type = llvm::Type::getFloatTy(context.context);
     else if (ret_type == TokenType::KW_bool)
         return_type = llvm::Type::getInt1Ty(context.context);
+    else if (ret_type == TokenType::KW_str)
+        return_type = llvm::PointerType::getUnqual(context.context);
 
     llvm::FunctionType *fn_type = llvm::FunctionType::get(return_type, param_types, false);
     llvm::Function *fnc = llvm::Function::Create(fn_type, llvm::Function::ExternalLinkage, name, context.module.get());

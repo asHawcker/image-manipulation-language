@@ -51,6 +51,10 @@ Type SemanticAnalyzer::analyze_expr(Expr *expr)
             return bin_expr->type;
         }
 
+        if (lType == Type::STRING || rType == Type::STRING)
+        {
+            throw std::runtime_error("Cant perform arithmetic operation on 'string'");
+        }
         if (lType == Type::BOOL || rType == Type::BOOL)
         {
             throw std::runtime_error("Cant perform arithmetic operation on 'bool'");
@@ -67,6 +71,7 @@ Type SemanticAnalyzer::analyze_expr(Expr *expr)
 
         return bin_expr->type;
     }
+
     if (auto *call_expr = dynamic_cast<CallExpr *>(expr))
     {
         if (func_table.find(call_expr->name) == func_table.end())
@@ -96,6 +101,13 @@ Type SemanticAnalyzer::analyze_expr(Expr *expr)
         expr->type = expected_sig.return_type;
         return expr->type;
     }
+
+    if (auto *str_expr = dynamic_cast<StrExpr *>(expr))
+    {
+        expr->type = Type::STRING;
+        return expr->type;
+    }
+
     return Type::UNK;
 }
 
@@ -110,6 +122,8 @@ Type token_to_type(TokenType tok)
         return Type::FLOAT;
     case TokenType::KW_bool:
         return Type::BOOL;
+    case TokenType::KW_str:
+        return Type::STRING;
     default:
         return Type::UNK;
     }

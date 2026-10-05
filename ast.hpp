@@ -11,6 +11,7 @@ enum class Type
     INT,
     FLOAT,
     BOOL,
+    STRING,
     UNK
 };
 
@@ -79,6 +80,14 @@ public:
     std::string name;
     std::vector<std::unique_ptr<Expr>> args;
     CallExpr(std::string name, std::vector<std::unique_ptr<Expr>> args) : name(std::move(name)), args(std::move(args)) {}
+    virtual llvm::Value *codegen(CodeGenContext &context) override;
+};
+
+class StrExpr : public Expr
+{
+public:
+    std::string value;
+    StrExpr(std::string value) : value(std::move(value)) { type = Type::STRING; }
     virtual llvm::Value *codegen(CodeGenContext &context) override;
 };
 
