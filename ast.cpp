@@ -113,8 +113,8 @@ void VarDecStmt::codegen(CodeGenContext &context)
         alloca = context.builder.CreateAlloca(llvm::Type::getFloatTy(context.context), nullptr, name);
     else if (type == TokenType::KW_bool)
         alloca = context.builder.CreateAlloca(llvm::Type::getInt1Ty(context.context), nullptr, name);
-    else if (type == TokenType::KW_str)
-        alloca = context.builder.CreateAlloca(llvm::PointerType::getUnqual(context.context));
+    else if (type == TokenType::KW_str || type == TokenType::KW_img)
+        alloca = context.builder.CreateAlloca(llvm::PointerType::getUnqual(context.context), nullptr, name);
     context.builder.CreateStore(init_value, alloca);
     context.set_var(name, alloca);
 }
@@ -124,7 +124,7 @@ llvm::Value *CallExpr::codegen(CodeGenContext &context)
     llvm::Function *callee = context.module->getFunction(name);
     if (!callee)
     {
-        std::runtime_error("unknown function referenced ");
+        throw std::runtime_error("unknown function referenced ");
     }
 
     std::vector<llvm::Value *> argument_values;
@@ -142,6 +142,97 @@ llvm::Value *CallExpr::codegen(CodeGenContext &context)
 llvm::Value *StrExpr::codegen(CodeGenContext &context)
 {
     return context.builder.CreateGlobalString(value, "tmpstr");
+}
+
+llvm::Value *ImgExpr::codegen(CodeGenContext &context)
+{
+    llvm::Function *malloc_func = context.module->getFunction("malloc");
+    if (!malloc_func)
+    {
+        llvm::FunctionType *malloc_type = llvm::FunctionType::get(
+            llvm::PointerType::getUnqual(context.context),
+            {llvm::Type::getInt64Ty(context.context)},
+            false);
+        malloc_func = llvm::Function::Create(
+            malloc_type,
+            llvm::Function::ExternalLinkage,
+            "malloc",
+            context.module.get());
+    }
+
+    const llvm::DataLayout &dl = context.module->getDataLayout();
+    uint64_t struct_size = dl.getTypeAllocSize(context.img_struct_type);
+
+    llvm::Value *img_struct_ptr = context.builder.CreateCall(
+        malloc_func,
+        {llvm::ConstantInt::get(llvm::Type::getInt64Ty(context.context), struct_size)},
+        "img_struct");
+
+    int total_pixels = width * height * channels;
+    llvm::Value *data_ptr = nullptr;
+
+    if (data && total_pixels > 0)
+    {
+        uint64_t data_bytes = total_pixels * sizeof(int);
+        data_ptr = context.builder.CreateCall(
+            malloc_func,
+            {llvm::ConstantInt::get(llvm::Type::getInt64Ty(context.context), data_bytes)},
+            "img_data");
+
+        for (int i = 0; i < total_pixels; i++)
+        {
+            llvm::Value *elem_ptr = context.builder.CreateGEP(
+                llvm::Type::getInt32Ty(context.context),
+                data_ptr,
+                {llvm::ConstantInt::get(llvm::Type::getInt32Ty(context.context), i)},
+                "pixel_ptr");
+            context.builder.CreateStore(
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(context.context), data[i]),
+                elem_ptr);
+        }
+    }
+    else
+    {
+        data_ptr = llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(context.context));
+    }
+
+    llvm::Value *w_ptr = context.builder.CreateStructGEP(context.img_struct_type, img_struct_ptr, 0, "w_ptr");
+    context.builder.CreateStore(llvm::ConstantInt::get(llvm::Type::getInt32Ty(context.context), width), w_ptr);
+
+    llvm::Value *h_ptr = context.builder.CreateStructGEP(context.img_struct_type, img_struct_ptr, 1, "h_ptr");
+    context.builder.CreateStore(llvm::ConstantInt::get(llvm::Type::getInt32Ty(context.context), height), h_ptr);
+
+    llvm::Value *c_ptr = context.builder.CreateStructGEP(context.img_struct_type, img_struct_ptr, 2, "c_ptr");
+    context.builder.CreateStore(llvm::ConstantInt::get(llvm::Type::getInt32Ty(context.context), channels), c_ptr);
+
+    llvm::Value *d_ptr = context.builder.CreateStructGEP(context.img_struct_type, img_struct_ptr, 3, "d_ptr");
+    context.builder.CreateStore(data_ptr, d_ptr);
+
+    return img_struct_ptr;
+}
+
+llvm::Value *PropAccessExpr::codegen(CodeGenContext &context)
+{
+    llvm::Value *img_ptr = context.get_var(var_name);
+    if (!img_ptr)
+    {
+        throw std::runtime_error("Undeclared image variable: " + var_name);
+    }
+    llvm::Value *img_val = context.builder.CreateLoad(llvm::PointerType::getUnqual(context.context), img_ptr, "img_val");
+
+    int field_idx = 0;
+    if (property == "width")
+        field_idx = 0;
+    else if (property == "height")
+        field_idx = 1;
+    else if (property == "channels")
+        field_idx = 2;
+    else
+        throw std::runtime_error("Unknown image property");
+
+    llvm::Value *field_ptr = context.builder.CreateStructGEP(context.img_struct_type, img_val, field_idx, "imggep");
+
+    return context.builder.CreateLoad(llvm::Type::getInt32Ty(context.context), field_ptr, "propertytmp");
 }
 
 void BlockStmt::codegen(CodeGenContext &context)
@@ -229,7 +320,7 @@ void AssignStmt::codegen(CodeGenContext &context)
 
     if (context.get_var(name) == nullptr)
     {
-        std::runtime_error("Undeclared variable assignment");
+        throw std::runtime_error("Undeclared variable assignment");
     }
     llvm::Value *ptr = context.get_var(name);
 
@@ -247,7 +338,7 @@ void ExternDeclStmt::codegen(CodeGenContext &context)
             args.push_back(llvm::Type::getFloatTy(context.context));
         else if (t == TokenType::KW_bool)
             args.push_back(llvm::Type::getInt1Ty(context.context));
-        else if (ret_type == TokenType::KW_str)
+        else if (t == TokenType::KW_str || t == TokenType::KW_img)
             args.push_back(llvm::PointerType::getUnqual(context.context));
     }
 
@@ -258,7 +349,7 @@ void ExternDeclStmt::codegen(CodeGenContext &context)
         ret = llvm::Type::getFloatTy(context.context);
     else if (ret_type == TokenType::KW_bool)
         ret = llvm::Type::getInt1Ty(context.context);
-    else if (ret_type == TokenType::KW_str)
+    else if (ret_type == TokenType::KW_str || ret_type == TokenType::KW_img)
         ret = llvm::PointerType::getUnqual(context.context);
 
     llvm::FunctionType *func_type = llvm::FunctionType::get(ret, args, false);
@@ -277,7 +368,7 @@ void FncDecStmt::codegen(CodeGenContext &context)
             param_types.push_back(llvm::Type::getFloatTy(context.context));
         if (p.type == TokenType::KW_bool)
             param_types.push_back(llvm::Type::getInt1Ty(context.context));
-        if (p.type == TokenType::KW_str)
+        if (p.type == TokenType::KW_str || p.type == TokenType::KW_img)
             param_types.push_back(llvm::PointerType::getUnqual(context.context));
     }
 
@@ -288,7 +379,7 @@ void FncDecStmt::codegen(CodeGenContext &context)
         return_type = llvm::Type::getFloatTy(context.context);
     else if (ret_type == TokenType::KW_bool)
         return_type = llvm::Type::getInt1Ty(context.context);
-    else if (ret_type == TokenType::KW_str)
+    else if (ret_type == TokenType::KW_str || ret_type == TokenType::KW_img)
         return_type = llvm::PointerType::getUnqual(context.context);
 
     llvm::FunctionType *fn_type = llvm::FunctionType::get(return_type, param_types, false);

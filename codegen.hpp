@@ -15,10 +15,16 @@ struct CodeGenContext
     llvm::IRBuilder<> builder;
     std::vector<std::map<std::string, llvm::Value *>> scopes;
 
+    llvm::StructType *img_struct_type = llvm::StructType::create(context, "imgtype");
+
     CodeGenContext() : builder(context)
     {
         module = std::make_unique<llvm::Module>("iml_compiler", context);
         scopes.push_back({});
+        img_struct_type->setBody({llvm::Type::getInt32Ty(context),
+                                  llvm::Type::getInt32Ty(context),
+                                  llvm::Type::getInt32Ty(context),
+                                  llvm::PointerType::getUnqual(context)});
     }
 
     void push_scope()

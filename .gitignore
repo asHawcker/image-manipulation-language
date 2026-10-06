@@ -3,3 +3,6 @@ build/
 iml_compiler
 *.o
 *.ll
+*.png
+*.jpeg
+*.jpg

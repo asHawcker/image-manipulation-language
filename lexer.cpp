@@ -102,7 +102,13 @@ Token Lexer::next_token()
         return next;
     case ',':
         next.type = TokenType::Comma;
-        next.lexeme = "{";
+        next.lexeme = ",";
+        col++;
+        cursor++;
+        return next;
+    case '.':
+        next.type = TokenType::OP_dot;
+        next.lexeme = ".";
         col++;
         cursor++;
         return next;
@@ -215,6 +221,8 @@ Token Lexer::next_token()
             next.type = TokenType::KW_ret;
         else if (next.lexeme == "str")
             next.type = TokenType::KW_str;
+        else if (next.lexeme == "img")
+            next.type = TokenType::KW_img;
         else
             next.type = TokenType::Identifier;
         return next;

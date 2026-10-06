@@ -38,6 +38,8 @@ std::unique_ptr<Stmt> Parser::parse_stmt()
         return parse_var_dec_stmt(TokenType::KW_bool);
     if (match(TokenType::KW_str))
         return parse_var_dec_stmt(TokenType::KW_str);
+    if (match(TokenType::KW_img))
+        return parse_var_dec_stmt(TokenType::KW_img);
     if (match(TokenType::KW_if))
         return parse_if_stmt();
     if (match(TokenType::KW_while))
@@ -224,6 +226,12 @@ std::unique_ptr<Expr> Parser::parse_primary()
             }
             consume(TokenType::Paren_right, "");
             return std::make_unique<CallExpr>(identifier.lexeme, std::move(args));
+        }
+        if (match(TokenType::OP_dot))
+        {
+            consume(TokenType::OP_dot, "");
+            Token prop = consume(TokenType::Identifier, "Expected a valid identifier fro property name");
+            return std::make_unique<PropAccessExpr>(identifier.lexeme, prop.lexeme);
         }
         return std::make_unique<VarExpr>(identifier.lexeme);
     }

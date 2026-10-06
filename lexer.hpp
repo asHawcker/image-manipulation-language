@@ -27,11 +27,13 @@ enum class TokenType
     OP_andand,
     OP_oror,
     OP_not,
+    OP_dot,
 
     KW_int,
     KW_float,
     KW_bool,
     KW_str,
+    KW_img,
 
     KW_true,
     KW_false,

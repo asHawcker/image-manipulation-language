@@ -1,48 +1,16 @@
+extern img load_image(str);
+extern void free_image(img);
 extern int print(int);
-extern float fprint(float);
-extern str print_str(str);
 
-fnc multiply_add(int a, int b, int c): int {
-    ret (a * b) + c;
+fnc main(): int {
+    img my_img = load_image("test.png");
+    
+    print(my_img.width);
+    print(my_img.height);
+    print(my_img.channels);
+
+    free_image(my_img);
+    ret 0;
 }
 
-fnc factorial(int n): int {
-    if (n <= 1) {
-        ret 1;
-    } else {
-        ret n * factorial(n - 1);
-    }
-}
-
-fnc loop_test(int limit): int {
-    int count = 0;
-    bool keep_running = true;
-
-    while (keep_running) {
-        count = count + 1;
-        if (count == limit) {
-            keep_running = false;
-        }
-    }
-    ret count;
-}
-
-fnc float_calc(int base_val): float {
-    float f_val = base_val;
-    float result = f_val * 2.5 + 1.0;
-    ret result;
-}
-
-int math_res = multiply_add(5, 4, 3);
-print(math_res);
-
-int fact_res = factorial(5);
-print(fact_res);
-
-int loop_res = loop_test(7);
-print(loop_res);
-
-float f_res = float_calc(10);
-fprint(f_res);
-
-print_str("hello world!");
+main();

@@ -108,6 +108,30 @@ Type SemanticAnalyzer::analyze_expr(Expr *expr)
         return expr->type;
     }
 
+    if (auto *img_expr = dynamic_cast<ImgExpr *>(expr))
+    {
+        expr->type = Type::IMAGE;
+        return expr->type;
+    }
+
+    if (auto *prop_access_expr = dynamic_cast<PropAccessExpr *>(expr))
+    {
+        Type var_type = get_var_type(prop_access_expr->var_name);
+        if (var_type != Type::IMAGE)
+        {
+            throw std::runtime_error("property access '.' only supported on 'img' type, but '" + prop_access_expr->var_name + "' is not an image.");
+        }
+
+        const std::string &p = prop_access_expr->property;
+        if (p != "width" && p != "height" && p != "channels")
+        {
+            throw std::runtime_error("unknown image property '" + p + "'. Expected width, height, or channels.");
+        }
+
+        expr->type = Type::INT;
+        return expr->type;
+    }
+
     return Type::UNK;
 }
 
@@ -124,6 +148,8 @@ Type token_to_type(TokenType tok)
         return Type::BOOL;
     case TokenType::KW_str:
         return Type::STRING;
+    case TokenType::KW_img:
+        return Type::IMAGE;
     default:
         return Type::UNK;
     }

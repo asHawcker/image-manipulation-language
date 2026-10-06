@@ -12,6 +12,7 @@ enum class Type
     FLOAT,
     BOOL,
     STRING,
+    IMAGE,
     UNK
 };
 
@@ -88,6 +89,29 @@ class StrExpr : public Expr
 public:
     std::string value;
     StrExpr(std::string value) : value(std::move(value)) { type = Type::STRING; }
+    virtual llvm::Value *codegen(CodeGenContext &context) override;
+};
+
+class ImgExpr : public Expr
+{
+public:
+    int width, height, channels;
+    int *data;
+    ImgExpr(int width, int height, int channels, int *data)
+        : width(width),
+          height(height),
+          channels(channels),
+          data(std::move(data)) { type = Type::IMAGE; }
+    virtual llvm::Value *codegen(CodeGenContext &context) override;
+};
+
+class PropAccessExpr : public Expr
+{
+public:
+    std::string var_name;
+    std::string property;
+
+    PropAccessExpr(std::string var_name, std::string property) : var_name(std::move(var_name)), property(std::move(property)) {}
     virtual llvm::Value *codegen(CodeGenContext &context) override;
 };
 
