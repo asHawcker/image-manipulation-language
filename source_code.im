@@ -2,15 +2,11 @@ extern img load_image(str);
 extern void free_image(img);
 extern int print(int);
 
-fnc main(): int {
-    img my_img = load_image("test.png");
-    
-    print(my_img.width);
-    print(my_img.height);
-    print(my_img.channels);
 
-    free_image(my_img);
-    ret 0;
-}
+img my_img = load_image("test.png");
 
-main();
+print(my_img.width);
+print(my_img.height);
+print(my_img.channels);
+
+free_image(my_img);
