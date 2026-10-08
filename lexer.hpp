@@ -47,6 +47,9 @@ enum class TokenType
     KW_fnc,
     KW_ret, // return
 
+    KW_break,
+    KW_continue,
+
     Paren_left,
     Paren_right,
     Brace_left,

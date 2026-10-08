@@ -223,6 +223,10 @@ Token Lexer::next_token()
             next.type = TokenType::KW_str;
         else if (next.lexeme == "img")
             next.type = TokenType::KW_img;
+        else if (next.lexeme == "break")
+            next.type = TokenType::KW_break;
+        else if (next.lexeme == "continue")
+            next.type = TokenType::KW_continue;
         else
             next.type = TokenType::Identifier;
         return next;

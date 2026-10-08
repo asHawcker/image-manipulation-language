@@ -8,12 +8,19 @@
 #include <string>
 #include <memory>
 
+struct LoopBlocks
+{
+    llvm::BasicBlock *cond_block;
+    llvm::BasicBlock *end_block;
+};
+
 struct CodeGenContext
 {
     llvm::LLVMContext context;
     std::unique_ptr<llvm::Module> module;
     llvm::IRBuilder<> builder;
     std::vector<std::map<std::string, llvm::Value *>> scopes;
+    std::vector<LoopBlocks> loop_stack;
 
     llvm::StructType *img_struct_type = llvm::StructType::create(context, "imgtype");
 

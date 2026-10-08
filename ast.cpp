@@ -299,6 +299,7 @@ void WhileStmt::codegen(CodeGenContext &context)
     if (!condition)
         return;
     context.builder.CreateCondBr(condition, body_block, end);
+    context.loop_stack.push_back({cond_block, end});
 
     parent_func->insert(parent_func->end(), body_block);
     context.builder.SetInsertPoint(body_block);
@@ -307,6 +308,7 @@ void WhileStmt::codegen(CodeGenContext &context)
     {
         context.builder.CreateBr(cond_block);
     }
+    context.loop_stack.pop_back();
 
     parent_func->insert(parent_func->end(), end);
     context.builder.SetInsertPoint(end);
@@ -437,4 +439,22 @@ void RetStmt::codegen(CodeGenContext &context)
     {
         context.builder.CreateRetVoid();
     }
+}
+
+void BreakStmt::codegen(CodeGenContext &context)
+{
+    if (context.loop_stack.empty())
+    {
+        throw std::runtime_error("error: 'break' outside of a loop");
+    }
+    context.builder.CreateBr(context.loop_stack.back().end_block);
+}
+
+void ContinueStmt::codegen(CodeGenContext &context)
+{
+    if (context.loop_stack.empty())
+    {
+        throw std::runtime_error("error: 'continue' outside of a loop");
+    }
+    context.builder.CreateBr(context.loop_stack.back().cond_block);
 }

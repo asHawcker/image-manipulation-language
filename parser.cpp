@@ -50,6 +50,18 @@ std::unique_ptr<Stmt> Parser::parse_stmt()
         return parse_fnc_dec_stmt();
     if (match(TokenType::KW_ret))
         return parse_ret_stmt();
+    if (match(TokenType::KW_break))
+    {
+        advance();
+        consume(TokenType::Semicolon, "expected ';' after break");
+        return std::make_unique<BreakStmt>();
+    }
+    if (match(TokenType::KW_continue))
+    {
+        advance();
+        consume(TokenType::Semicolon, "expected ';' after continue");
+        return std::make_unique<ContinueStmt>();
+    }
     if (match(TokenType::Identifier))
     {
         if (lexer.peek_token().type == TokenType::OP_equal)

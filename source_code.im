@@ -1,12 +1,16 @@
-extern img load_image(str);
-extern void free_image(img);
-extern int print(int);
+extern void print(int);
 
+int i = 0;
+while (i < 10) {
+    i = i + 1;
+    
+    if (i == 3) {
+        continue; 
+    }
+    
+    if (i == 8) {
+        break;    
+    }
 
-img my_img = load_image("test.png");
-
-print(my_img.width);
-print(my_img.height);
-print(my_img.channels);
-
-free_image(my_img);
+    print(i);
+}

@@ -222,4 +222,16 @@ public:
     virtual void codegen(CodeGenContext &context) override;
 };
 
+class BreakStmt : public Stmt
+{
+public:
+    virtual void codegen(CodeGenContext &context) override;
+};
+
+class ContinueStmt : public Stmt
+{
+public:
+    virtual void codegen(CodeGenContext &context) override;
+};
+
 #endif
